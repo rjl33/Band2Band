@@ -80,7 +80,7 @@ def load_bandgap_data(mat_file='bandgap_data.mat', resize=64):
     freq_gap_inplane[np.where(freq_gap_inplane<0.01)] = 0
     freq_centr_inplane[np.where(freq_gap_inplane<0.01)] = 0
 
-    freq_range_inplane = np.array([[0,1000],[1000,2000],[2000,3000]])
+    freq_range_inplane = np.array([[0,1000],[1000,2000],[2000,3000], [3000, 4000], [4000, 5000]])
     labels = get_labels_and_gaps(freq_centr_inplane, freq_gap_inplane, freq_range_inplane, size_min = 0.0)
 
     dataset = UnitCellDS(X_raw, labels, resize=resize)
