@@ -4,7 +4,7 @@ A deep learning framework for predicting bandgap frequencies in acoustic metamat
 
 ## Project Report
 
-A detailed technical report for this project is available here: [[PDF](link-to-paper)]
+A detailed technical report for this project is available here: [[PDF](Metamaterial BandGap Preditions using CNNs.pdf)]
 
 The report includes:
 - Comprehensive ablation studies across all architectures
