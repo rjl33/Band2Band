@@ -1,40 +1,41 @@
-# Band2Band: Deep Learning for Acoustic Metamaterial Bandgap Prediction
+# Band2Band: Multi-Label Bandgap Prediction in Metamaterials Using CNNs
 
-A deep learning framework for predicting bandgap frequencies in acoustic metamaterials using convolutional neural networks and transfer learning. This project achieves **94.5% accuracy**, surpassing the established benchmark of 91.48%.
+A deep learning framework using ResNet18-based transfer learning for rapid multi-label prediction of bandgap existence across five frequency ranges in 2D acoustic metamaterials. This project achieves **94.5% element-wise accuracy**, exceeding the established benchmark of 91.48% and enabling ~25 ms inference per sample.
+
+## Overview
+
+Acoustic metamaterials exhibit unique wave propagation properties characterized by frequency bandgaps—ranges where mechanical waves cannot propagate. Traditional finite element simulations require hours per design, severely limiting design space exploration. This project demonstrates that convolutional neural networks with transfer learning can rapidly and accurately predict bandgap presence across multiple frequency ranges from metamaterial unit cell geometries.
+
+**Authors**: Ryan Lengacher, Jiaxuan Zhang, Ukamaka Ezimora (Duke University, December 2024)
+  
 
 ## Project Report
 
-A detailed technical report for this project is available here: [PDF](Metamaterial%20BandGap%20Preditions%20using%20CNNs.pdf)
+📄 **Full Technical Report**: [PDF](Metamaterial_BandGap_Preditions_using_CNNs.pdf)
 
 The report includes:
-- Comprehensive ablation studies across all architectures
-- Performance analysis and comparison with baseline
-- Methodology and implementation details
-- Future directions and applications
-  
-## Overview
-
-Acoustic metamaterials exhibit unique wave propagation properties characterized by frequency bandgaps—ranges where mechanical waves cannot propagate. Predicting these bandgaps from geometric configurations is computationally expensive using traditional finite element methods. This project demonstrates that deep learning can rapidly and accurately predict bandgap presence from metamaterial geometries.
+- Comprehensive methodology and two-phase training strategy
+- Systematic ablation studies evaluating all architectural modifications
+- Detailed per-class performance analysis across five frequency ranges
+- Grad-CAM visualizations showing learned geometric feature attention
+- Discussion of limitations and future research directions
 
 ### Key Achievements
 
-- **94.5% classification accuracy** on bandgap prediction
-- Systematic ablation studies identifying optimal architecture components
-- Transfer learning baseline (ResNet18) achieving 87% accuracy
-- Multiple architectural variants explored: simple CNN, ResNet18, ResNet50, fine-resolution models
-- Efficient prediction enabling rapid design space exploration
+- **94.5% element-wise accuracy** across five frequency ranges on test data
+- **3.0 percentage point improvement** over Chen et al.'s interpretable baseline (91.48%)
+- **Multi-label classification**: Simultaneous prediction across [0-1], [1-2], [2-3], [3-4], [4-5] kHz ranges
+- **Rapid inference**: 25.54 ms per sample (~39 samples/second), enabling design space exploration
+- **Systematic ablation studies**: Evaluated ResNet18 vs ResNet50, resolution scaling, loss functions, and regularization
+- **Transfer learning optimization**: Two-phase training strategy with successful feature adaptation from ImageNet
 
 ## Problem Statement
 
-Given a 2D representation of an acoustic metamaterial structure, predict whether a bandgap exists at specific frequency ranges. Traditional approaches require:
-- Finite element eigenvalue analysis
-- Computation time: minutes to hours per geometry
-- Extensive computational resources
+Given a 2D representation of an acoustic metamaterial unit cell, predict whether complete bandgaps exist across five specific frequency ranges: [0-1], [1-2], [2-3], [3-4], and [4-5] kHz. This is formulated as a multi-label binary classification problem, where each sample may exhibit bandgaps in multiple frequency ranges simultaneously.
 
-Our CNN approach provides:
-- Near-instantaneous predictions (<1ms per geometry)
-- Scalable design space exploration
-- Physics-informed feature learning
+**Challenge**: Traditional finite element eigenvalue analysis requires hours per geometry and extensive computational resources, limiting design space exploration.
+
+**Our Solution**: A ResNet18-based CNN that provides near-instantaneous predictions (<26 ms per geometry), enabling rapid screening of thousands of metamaterial candidates while exceeding the accuracy of interpretable baseline methods.
 
 ## Methodology
 
@@ -44,24 +45,41 @@ This project uses the acoustic metamaterial dataset from:
 
 **Chen, Z., Ogren, A., Daraio, C., Brinson, L.C., Rudin, C.** (2022). "How to see hidden patterns in metamaterials with interpretable machine learning." *Materials Today Communications*, 33, 104565. https://doi.org/10.1016/j.mtcomm.2022.104565
 
-Their baseline CNN model achieved **91.48% accuracy**, which we extend through systematic architecture improvements and transfer learning to achieve **94.5% accuracy**.
+Their interpretable LightGBM model achieved **91.48% accuracy**, which we surpass through transfer learning and systematic optimization to achieve **94.5% accuracy**.
 
 **Dataset characteristics:**
-- **Source**: Synthetic metamaterial geometries with computed bandgap properties  
-- **Input**: 2D grayscale images representing metamaterial unit cells
-- **Output**: Binary classification (bandgap present/absent)
-- **Preprocessing**: Standardized normalization following original methodology
+- **Size**: 32,768 samples with dispersion data (20 bands × 150 k-points per sample)
+- **Input**: 10×10 unit cell geometries (binary: soft polymer vs. stiff steel)
+- **Symmetry**: Four-axis symmetry reduces 100 pixels to 15 irreducible pixels (2^15 design space)
+- **Materials**: Soft polymer (E=2 GPa, ρ=1000 kg/m³) and stiff steel (E=200 GPa, ρ=8000 kg/m³)
+- **Output**: Multi-label binary classification for five 1 kHz frequency ranges
+- **Preprocessing**: 10×10 patterns reconstructed via symmetry, upsampled to 128×128, normalized to [-1, 1]
+- **Split**: 70% training (22,938), 15% validation (4,915), 15% test (4,915)
 
-### Architecture Evolution
+### Systematic Ablation Studies
 
-The project explores multiple CNN architectures through systematic ablation studies:
+The project employed a rigorous systematic evaluation approach, testing modifications individually before combining them:
 
-1. **Simple CNN** (`Full_Simple_CNN.py`): Custom lightweight architecture as baseline
-2. **Transfer Learning - ResNet18** (`Trasnfer_Learning_CNN.py`): Pre-trained feature extraction achieving 87% accuracy
-3. **Transfer Learning - ResNet50** (`Transfer_Learning_CNN_Resnet50.py`): Deeper architecture evaluation
-4. **Fine Resolution Model** (`Transfer_Learning_Finer_Resolution.py`): Higher resolution input processing
-5. **Classification Loss Variants** (`Transfer_Learning_class_loss.py`): Loss function experimentation
-6. **Final Model** (`Final_Model.py`): Optimized architecture achieving 94.5% accuracy
+**Baseline Model** (87.4% test accuracy):
+- ResNet18 with averaged RGB→grayscale first conv layer
+- 64×64 input resolution
+- Two-phase training: 5-epoch warmup (frozen backbone) + fine-tuning
+- Class-balanced binary cross-entropy loss
+
+**Individual Modifications Tested**:
+1. **Class-weighted loss**: Aggressive weighting [1.0, 1.0, 1.2, 1.8, 2.5] → **Decreased to 86.4%** (over-predicted high-frequency bandgaps)
+2. **Higher resolution (128×128)**: → **89.7% test accuracy** (+2.3 pp improvement)
+3. **Deeper architecture (ResNet50)**: → **89.6% test accuracy** (+2.2 pp improvement)
+4. **Combined ResNet50 + 128×128**: → **86.4%** (model too deep for dataset size)
+5. **Added dropout (0.35)**: → **86.2%** (when combined with ResNet50)
+
+**Final Optimized Model** (94.5% test accuracy):
+- ResNet18 architecture (optimal for dataset size)
+- 128×128 input resolution (captures fine geometric details)
+- Per-class threshold optimization (0.40, 0.50, 0.50, 0.60, 0.70 for five classes)
+- Dropout 0.35 after final FC layer
+- Extended training to 30 epochs
+- Two-phase strategy: warmup + fine-tuning with ReduceLROnPlateau
 
 ### Training Strategy
 
@@ -182,27 +200,45 @@ Band2Band/
 
 ### Performance Metrics
 
-| Model | Accuracy | Precision | Recall | F1-Score |
-|-------|----------|-----------|--------|----------|
-| Simple CNN | 82.3% | 0.81 | 0.84 | 0.82 |
-| ResNet18 (Transfer) | 87.0% | 0.86 | 0.88 | 0.87 |
-| ResNet50 (Transfer) | 89.2% | 0.89 | 0.90 | 0.89 |
-| Fine Resolution | 91.8% | 0.92 | 0.91 | 0.91 |
-| **Final Model** | **94.5%** | **0.94** | **0.95** | **0.94** |
-| Benchmark | 91.48% | - | - | - |
+**Overall Accuracy**:
+| Model | Train Acc. | Val. Acc. | Test Acc. |
+|-------|-----------|-----------|-----------|
+| Baseline (ResNet18, 64×64) | 89.6% | 87.3% | 87.4% |
+| Higher Resolution (128×128) | 91.3% | 89.7% | 89.7% |
+| ResNet50 | 91.2% | 89.4% | 89.6% |
+| **Final Model (30 epochs)** | **99.1%** | **94.5%** | **94.5%** |
+| Chen et al. Benchmark | - | - | 91.48% |
+
+**Per-Class F1 Scores** (Final Model):
+| Frequency Range (kHz) | [0-1] | [1-2] | [2-3] | [3-4] | [4-5] |
+|----------------------|-------|-------|-------|-------|-------|
+| **Final Model** | 0.952 | 0.956 | 0.919 | 0.853 | 0.686 |
+| Baseline | 0.897 | 0.910 | 0.811 | 0.698 | 0.358 |
+| **Improvement** | +0.055 | +0.046 | +0.108 | +0.155 | **+0.328** |
+| Optimized Threshold | 0.50 | 0.40 | 0.50 | 0.60 | 0.70 |
+
+**Note**: Higher frequency ranges (3-4 kHz, 4-5 kHz) are more challenging due to subtle geometric features. The dramatic improvement in the [4-5] kHz range (+0.328 F1 score) demonstrates the effectiveness of increased resolution and threshold optimization.
 
 ### Key Findings
 
-1. **Transfer learning provides strong baseline**: Pre-trained features from ImageNet transfer surprisingly well to metamaterial geometries
-2. **Resolution matters**: Finer input resolution improves boundary detection and small feature recognition
-3. **Architecture depth**: Moderate depth with proper regularization outperforms very deep networks
-4. **Ensemble benefits**: Combining multiple model predictions improves robustness
+1. **Resolution is critical**: Increasing input from 64×64 to 128×128 provided the largest single improvement (+2.3 pp), enabling the network to capture fine geometric details at stiff-soft material interfaces
+
+2. **Model depth vs. dataset size**: ResNet50 performed similarly to ResNet18 individually, but combining ResNet50 with higher resolution degraded performance—the model became too deep for 22,938 training samples
+
+3. **Learned feature selectivity**: Grad-CAM visualizations show the 30-epoch model focuses sharply on stiff-soft material interfaces and specific geometric configurations, while earlier checkpoints show diffuse attention across multiple features
+
+4. **Class-specific thresholds matter**: Per-class threshold optimization (0.40, 0.50, 0.50, 0.60, 0.70) addresses tendency toward false positives in higher frequency ranges, providing modest but consistent improvements
+
+5. **High-frequency bandgaps are harder**: The [4-5] kHz range showed dramatic improvement (+0.328 F1) from baseline to final model, but still underperforms lower ranges (0.686 vs. 0.95), likely due to more subtle geometric features
+
+6. **Aggressive class weighting backfires**: Heavy weighting for minority classes caused over-prediction of bandgaps, reducing overall accuracy
 
 ### Computational Efficiency
 
-- **Training time**: ~2 hours on NVIDIA RTX 3080
-- **Inference time**: <1ms per sample
-- **Speedup vs. FEM**: ~10,000× faster than traditional finite element eigenvalue analysis
+- **Training time**: 10-12 hours on GPU for full 30-epoch optimization
+- **Inference time**: **25.54 ms per sample** (~39 samples/second)
+- **Speedup vs. FEM**: Enables rapid screening of thousands of candidates vs. hours per finite element simulation
+- **Practical impact**: Once trained, the model can evaluate an entire design space exploration in minutes rather than months
 
 ## Applications
 
@@ -252,13 +288,33 @@ criterion = nn.BCEWithLogitsLoss(pos_weight=class_weight)
 
 ## Future Work
 
-- **Multi-class prediction**: Predicting specific frequency ranges of bandgaps
-- **Regression models**: Predicting bandgap width and center frequency
-- **3D metamaterials**: Extending to volumetric structures
-- **Generative models**: GANs/diffusion models for inverse design
-- **Physics-informed loss**: Incorporating wave physics constraints
-- **Uncertainty quantification**: Bayesian neural networks for confidence estimates
-- **Experimental validation**: Testing predictions on fabricated samples
+**1. Multi-Resolution Generalization**
+- Current model limited to 10×10 unit cell discretizations
+- Test and retrain on finer grids (20×20, 50×50, 80×80) for higher spatial resolution metamaterial designs
+- Enable flexible design at any required level of geometric detail
+
+**2. Inverse Design (Property-to-Structure)**
+- Extend beyond bandgap identification to generative design
+- Embed model in optimization framework as surrogate for gradient-based search
+- Leverage learned geometric selectivity (Grad-CAM insights) to guide design toward viable structures
+- Adapt Chen et al.'s high-precision inverse-design approach to CNN-based surrogate
+
+**3. Dataset Augmentation for High-Frequency Ranges**
+- Generate additional samples capturing subtle geometries for [3-4] and [4-5] kHz ranges
+- Improve F1 scores in underperforming frequency ranges
+- Requires significant computational resources for additional FE simulations
+
+**4. Regression Capabilities**
+- Predict continuous bandgap width and center frequency (not just binary existence)
+- Enable more nuanced material property optimization
+
+**5. 3D Metamaterial Extension**
+- Extend framework to volumetric structures beyond 2D unit cells
+- Explore 3D convolutional architectures
+
+**6. Physics-Informed Constraints**
+- Incorporate wave physics constraints into loss functions
+- Improve model reliability and reduce non-physical predictions
 
 ## Related Work
 
