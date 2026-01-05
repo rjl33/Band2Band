@@ -11,7 +11,7 @@ Acoustic metamaterials exhibit unique wave propagation properties characterized 
 
 ## Project Report
 
-📄 **Full Technical Report**: [PDF](Metamaterial_BandGap_Preditions_using_CNNs.pdf)
+📄 **Full Technical Report**: [PDF](Metamaterial%20BandGap%20Preditions%20using%20CNNs.pdf)
 
 The report includes:
 - Comprehensive methodology and two-phase training strategy
